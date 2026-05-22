@@ -1,0 +1,45 @@
+import os
+import sys
+from main_agent import AntigravityMasterV95
+from rrg_visualizer import RRGVisualizer
+
+def main():
+    # Define our comprehensive list of leading US stocks across key sectors
+    sector_stock_map = {
+        'XLK': ['NVDA', 'AVGO', 'MSFT', 'AAPL', 'PLTR', 'PANW', 'ANET', 'VRT'],
+        'XLC': ['GOOGL', 'META', 'NFLX'],
+        'XLY': ['AMZN', 'TSLA', 'BROS'],
+        'XLE': ['VLO', 'CEG'],
+        'XLF': ['COIN', 'MSTR']
+    }
+
+    print("=" * 80)
+    print("🚀 Running Antigravity Minervini V9.5 Custom US Market Scan")
+    print(f"Target Stocks Count: {sum(len(v) for v in sector_stock_map.values())} tickers across {len(sector_stock_map)} sectors")
+    print("=" * 80)
+
+    # Initialize the master agent
+    master = AntigravityMasterV95()
+
+    # Run the main pipeline
+    # This will fetch data, analyze trend templates, VCP signals, smart money, options wall, and conflict resolution
+    master.run_strategy_pipeline(sector_stock_map)
+
+    # Additionally, generate a custom RRG report to visually present sector and stock trajectories
+    print("\n" + "=" * 80)
+    print("📊 Generating Relative Rotation Graph (RRG) visualization...")
+    print("=" * 80)
+    
+    rrg_sectors_path = './rrg_sectors.png'
+    rrg_stocks_path = './rrg_stocks.png'
+    try:
+        viz = RRGVisualizer()
+        viz.generate_sector_rrg(sector_stock_map, rrg_sectors_path, tail_len=15)
+        viz.generate_stock_rrg(sector_stock_map, rrg_stocks_path, tail_len=15)
+        print(f"🎉 Sector RRG chart successfully saved to: {rrg_sectors_path}")
+        print(f"🎉 Stock RRG chart successfully saved to: {rrg_stocks_path}")
+    except Exception as e:
+        print(f"⚠️ RRG Generation failed: {e}")
+
+if __name__ == "__main__":
+    main()

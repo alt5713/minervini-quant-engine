@@ -1,0 +1,34 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Output Images & Analysis Reports (배포 시 로컬에서 각자 생성하도록 제외)
+*.png
+*.jpg
+*.jpeg
+*.gif
+tesla_family_portfolio_report.md
+us_market_analysis_dynamic.md
+
+# State Files
+*.json
+*.log
