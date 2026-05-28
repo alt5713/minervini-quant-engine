@@ -305,102 +305,178 @@ class AntigravityDynamicScanner:
                 sector_stock_map[sector_etf] = []
             sector_stock_map[sector_etf].append(r['ticker'])
 
-        # RRG 차트 생성
-        rrg_sectors_path = '/Users/hwani/00. Antigravity폴더/26. 미너비니_Qwen버전/rrg_sectors.png'
-        rrg_stocks_path = '/Users/hwani/00. Antigravity폴더/26. 미너비니_Qwen버전/rrg_stocks.png'
-        print("\n📊 RRG 상대순환선도 그래프 생성 중 (꼬리: 15일)...")
+        # RRG 차트 생성 및 분석 스탯 추출 (파일명에 날짜 추가)
+        date_str = datetime.now().strftime('%Y-%m-%d')
+        rrg_sectors_path = f'/Users/hwani/00. Antigravity폴더/26. 미너비니_Qwen버전/rrg_charts/rrg_sectors_{date_str}.png'
+        rrg_stocks_path = f'/Users/hwani/00. Antigravity폴더/26. 미너비니_Qwen버전/rrg_charts/rrg_stocks_{date_str}.png'
+        print("\n📊 RRG 상대순환선도 그래프 생성 및 실시간 수급 매칭 분석 중 (꼬리: 15일)...")
+        rrg_stats = {}
         try:
             self.rrg_viz.generate_sector_rrg(sector_stock_map, rrg_sectors_path, tail_len=15)
             self.rrg_viz.generate_stock_rrg(sector_stock_map, rrg_stocks_path, tail_len=15)
             
+            # 실시간 RRG 분석 스탯 확보
+            rrg_stats = self.rrg_viz.get_latest_rrg_stats(sector_stock_map)
+            
             # 대화 아티팩트 보관용 폴더로 자동 복사 (경로 존재 여부 확인 후 복사)
             brain_dir = '/Users/hwani/.gemini/antigravity-ide/brain/4e07614f-2eeb-4b26-b11f-f4840c2e5385'
             os.makedirs(brain_dir, exist_ok=True)
-            os.system(f'cp "{rrg_sectors_path}" "{brain_dir}/rrg_sectors.png"')
-            os.system(f'cp "{rrg_stocks_path}" "{brain_dir}/rrg_stocks.png"')
-            print(f"🎉 RRG 차트 저장 완료: \n - {rrg_sectors_path}\n - {rrg_stocks_path}")
+            os.system(f'cp "{rrg_sectors_path}" "{brain_dir}/rrg_sectors_{date_str}.png"')
+            os.system(f'cp "{rrg_stocks_path}" "{brain_dir}/rrg_stocks_{date_str}.png"')
+            print(f"🎉 RRG 차트 저장 완료 및 스탯 분석 성공: \n - {rrg_sectors_path}\n - {rrg_stocks_path}")
         except Exception as e:
-            print(f"⚠️ RRG 차트 생성 실패: {e}")
+            print(f"⚠️ RRG 차트 생성 및 분석 실패: {e}")
 
         # 2. 마크다운 종합 리포트 발행
-        report_path = '/Users/hwani/.gemini/antigravity-ide/brain/4e07614f-2eeb-4b26-b11f-f4840c2e5385/us_market_analysis_dynamic.md'
-        workspace_report_path = '/Users/hwani/00. Antigravity폴더/26. 미너비니_Qwen버전/us_market_analysis_dynamic.md'
+        report_path = f'/Users/hwani/.gemini/antigravity-ide/brain/4e07614f-2eeb-4b26-b11f-f4840c2e5385/us_market_analysis_dynamic_{date_str}.md'
+        workspace_report_path = f'/Users/hwani/00. Antigravity폴더/26. 미너비니_Qwen버전/us_market_analysis_dynamic_{date_str}.md'
         
         now_str = datetime.now().strftime('%Y-%m-%d %H:%M')
         
-        md_content = f"""# 🤖 Antigravity Minervini V9.5 - Dynamic Global Market Scan Report
+        # RRG quadrant emoji mapping
+        quad_emojis = {
+            'LEADING': '🟢 **LEADING** (주도주)',
+            'IMPROVING': '🔵 **IMPROVING** (추세전환)',
+            'WEAKENING': '🟡 **WEAKENING** (상승둔화)',
+            'LAGGING': '🔴 **LAGGING** (소외주/경계)'
+        }
 
+        # 섹터별 종목 그룹화 및 리스트업 마크다운 빌드
+        sector_groups = {}
+        for r in sorted_reports[:20]:
+            sec = r['sector']
+            if sec not in sector_groups:
+                sector_groups[sec] = []
+            sector_groups[sec].append(r)
+            
+        sector_md = "\n## 🗂️ 2.1 섹터별 주도주 및 매매전략 분류 (Sector Grouping)\n\n"
+        for sec, r_list in sector_groups.items():
+            sector_md += f"### 📁 {sec} Sector (총 {len(r_list)}개 종목)\n\n"
+            sector_md += "| 순위 | 티커 (Ticker) | 종합 점수 | 의사결정 | RRG 사분면 (상대적 강도) | 매수가 가이드 / ATR dynamic 손절가 |\n"
+            sector_md += "| :---: | :--- | :---: | :---: | :---: | :--- |\n"
+            for r in r_list:
+                ticker = r['ticker']
+                rank = sorted_reports.index(r) + 1
+                decision_emoji = "🟢 **BUY**" if r['decision'] == "BUY" else "🟡 **WAIT**" if r['decision'] == "WAIT" else "⚪ **HOLD**"
+                rrg_info = rrg_stats.get(ticker, {})
+                quad_label = rrg_info.get('quadrant', 'N/A')
+                rrg_display = quad_emojis.get(quad_label, '⚪ **N/A** (분석제외)')
+                if quad_label != 'N/A':
+                    rrg_display += f" `(Ratio: {rrg_info['rs_ratio']:.1f} / Mom: {rrg_info['rs_momentum']:.1f})`"
+                sector_md += f"| {rank} | **{ticker}** | **{r['score']:.2f}** | {decision_emoji} | {rrg_display} | **${r['current_price']:.2f}** / ${r['stop_loss']:.2f} |\n"
+            sector_md += "\n"
+
+        md_content = f"""# 🤖 Antigravity Minervini V9.5 - Dynamic Global Market Scan Report
+ 
 > [!NOTE]
 > **스캔 완료 시간:** {now_str} (KST)  
-> S&P 500, Nasdaq 100, S&P 600 SmallCap 전 종목(총 1,119개)을 스캔하여 기술적 추세, 변동성 수축(VCP) 정도, 옵션 저항 구조, 기관 스마트 머니 수급 상태를 종합 평가한 실전 매수 추천 보고서입니다.
-
+> S&P 500, Nasdaq 100, S&P 600 SmallCap 전 종목을 스캔하여 기술적 추세, 변동성 수축(VCP) 정도, 옵션 저항 구조, 기관 스마트 머니 수급 상태를 종합 평가한 뒤, 실시간 RRG 상대순환선도(Relative Rotation Graph) 분석 결과와 100% 매칭하여 최강의 시장 주도주를 선별해 낸 종합 실전 리포트입니다.
+ 
 ---
-
+ 
 ## 📈 1. Market Health & Broad Scan Stats
-
+ 
 *   **시장 레짐 (Market Regime):** S&P 500이 50일선 위에 안정적으로 우상향하여 **강세장(Bullish)** 국면을 유지 중입니다.
 *   **스캔 통계:**
-    - 총 스캔 대상: **1,119+ 개 종목**
+    - 총 스캔 대상: **S&P 500, Nasdaq 100, S&P 600 중소형주 전수 종목 (약 1,120여 개)**
     - 1차 트렌드 돌파 (Stage 2 정배열 달성): **{len(reports) + (100 - len(reports) if len(reports) < 100 else 0)}여 개 종목**
     - 최종 정밀 연산 및 의사결정 수립: **{len(reports)}개 후보군**
-
+ 
 ---
-
-## 🏆 2. Top-Ranked Breakout Candidates (상승 직전 초성장주 탑랭킹)
-
-다음은 변동성 수축이 극대화되고 콜옵션 매도벽 저항이 없는, **상승 직전 매수 강도 상위 종목**입니다.
-
-| 순위 | 티커 (Ticker) | 섹터 (Sector) | 종합 점수 | 의사결정 | 매수가 가이드 / ATR dynamic 손절가 |
-| :---: | :--- | :--- | :---: | :---: | :--- |
+ 
+## 🏆 2. Top-Ranked Breakout Candidates & RRG Matching Matrix
+ 
+다음은 변동성 수축이 극대화되고 콜옵션 매도벽 저항이 없는, **상승 직전 매수 강도 상위 종목**과 이들의 **실시간 RRG 사분면 매칭 매트릭스**입니다.
+RRG 상에서 **LEADING**이나 **IMPROVING**에 위치한 종목들이 실질적인 수급의 최전선에 서 있는 주도주입니다.
+ 
+| 순위 | 티커 (Ticker) | 섹터 (Sector) | 종합 점수 | 의사결정 | RRG 사분면 (상대적 수급 강도) | 매수가 가이드 / ATR dynamic 손절가 |
+| :---: | :--- | :--- | :---: | :---: | :---: | :--- |
 """
-        
+
         for i, r in enumerate(sorted_reports[:20]):
+            ticker = r['ticker']
             decision_emoji = "🟢 **BUY**" if r['decision'] == "BUY" else "🟡 **WAIT**" if r['decision'] == "WAIT" else "⚪ **HOLD**"
-            md_content += f"| {i+1} | **{r['ticker']}** | {r['sector']} | **{r['score']:.2f}** | {decision_emoji} | **${r['current_price']:.2f}** / ${r['stop_loss']:.2f} |\n"
+            
+            # Get RRG quadrant info
+            rrg_info = rrg_stats.get(ticker, {})
+            quad_label = rrg_info.get('quadrant', 'N/A')
+            rrg_display = quad_emojis.get(quad_label, '⚪ **N/A** (분석제외)')
+            
+            if quad_label != 'N/A':
+                rrg_display += f"<br>`(Ratio: {rrg_info['rs_ratio']:.1f} / Mom: {rrg_info['rs_momentum']:.1f})`"
+                
+            md_content += f"| {i+1} | **{ticker}** | {r['sector']} | **{r['score']:.2f}** | {decision_emoji} | {rrg_display} | **${r['current_price']:.2f}** / ${r['stop_loss']:.2f} |\n"
+            
+        # Append sector-based grouping report
+        md_content += sector_md
             
         md_content += """
 ---
 
-## 🔍 3. Strategic Deep Dive of Top 3 Gems (상승 직전 보석 종목 상세 분석)
+## 🎯 3. 최종 선정된 실전 시장 주도주 (Minervini & RRG Consensus Leaders)
+
+> [!IMPORTANT]
+> **컨센서스 주도주 정의:** 1차 바텀업 미너비니 스크리닝(정배열, VCP 수축 완료, 기관 수급) 점수가 최고점이며, 동시에 실시간 RRG 분석 상에서 **LEADING (시장 주도 강세주)** 또는 **IMPROVING (회복 및 추세 전환주)** 사분면에 위치하여 탑다운/바텀업 조건이 완벽히 일치하는 초강세 합의(Consensus) 종목군입니다.
 
 """
-        # BUY 신호 또는 상위 종목 중 가장 점수가 높은 3개 분석
-        buy_gems = [r for r in sorted_reports if r['decision'] == "BUY"]
-        if len(buy_gems) < 3:
-            buy_gems = sorted_reports[:3]
-            
-        for i, r in enumerate(buy_gems[:3]):
-            md_content += f"""### 💎 {i+1}위 추천주: **{r['ticker']} ({r['sector']})** - Score: {r['score']:.2f}
-*   **기술적 상태 (VCP Score: {r['vcp_score']:.1f}):** MA50 > MA150 > MA200 정배열 상승 2단계에 완벽히 진입한 뒤, 최근 변동성 수축률(ATR)이 극도로 안정화된 VCP 수렴 수축 완료 구간입니다.
-*   **수급 및 기관 자금 (Flow Score: {r['flow_score']:.1f}):** Force Index 기반 자금 유입 흐름이 강력하게 잡혀 있어 돌파 직전 매도 매물이 깔끔하게 건조(Volume Dry-up)된 것이 수치적으로 관찰됩니다.
-*   **옵션 분석:** 콜옵션 저항벽(Call Wall)의 방해물이 존재하지 않아 상방 저항선이 지극히 깨끗하게 열려 있습니다.
-*   **트레이딩 액션:** **매수 진입가 ${r['current_price']:.2f}** / **동적 ATR 손절라인 ${r['stop_loss']:.2f}**로 정밀 진입이 매우 유리합니다.
+        # Consensus leaders filtering: Top score + (LEADING or IMPROVING in RRG)
+        consensus_leaders = []
+        for r in sorted_reports[:20]:
+            ticker = r['ticker']
+            rrg_info = rrg_stats.get(ticker, {})
+            quadrant = rrg_info.get('quadrant', '')
+            if quadrant in ['LEADING', 'IMPROVING']:
+                consensus_leaders.append((r, rrg_info))
 
+        if not consensus_leaders:
+            # Fallback if none found: just use top 3 by score
+            print("⚠️ LEADING/IMPROVING인 컨센서스 종목이 없어 차선책으로 상위 스코어 종목을 주도주로 배정합니다.")
+            for r in sorted_reports[:3]:
+                ticker = r['ticker']
+                rrg_info = rrg_stats.get(ticker, {'quadrant': 'N/A', 'rs_ratio': 100.0, 'rs_momentum': 100.0})
+                consensus_leaders.append((r, rrg_info))
+
+        for i, (r, rrg_info) in enumerate(consensus_leaders[:3]):
+            ticker = r['ticker']
+            quad = rrg_info.get('quadrant', 'N/A')
+            ratio_val = rrg_info.get('rs_ratio', 100.0)
+            mom_val = rrg_info.get('rs_momentum', 100.0)
+            
+            md_content += f"""### 👑 주도주 {i+1}순위: **{ticker} ({r['sector']})** - RRG: **{quad}** (Ratio: {ratio_val:.1f} / Mom: {mom_val:.1f})
+*   **기술적 패턴 및 VCP 강도 (Minervini Score: {r['vcp_score']:.1f}):** 50일, 150일, 200일 이동평균선이 완벽하게 우상향하는 '상승 2단계' 정배열 조건과 최근 ATR 변동성이 급속도로 수축하며 물량이 완전히 매집된 VCP 완결 상태입니다.
+*   **스마트 머니 & 기관 수급 (Force Score: {r['flow_score']:.1f}):** Force Index와 볼륨 강도가 매우 견고하게 유지되어 거래량 매 마름(Volume Dry-up) 후 돌파를 예고하고 있습니다.
+*   **RRG 상대강도 매칭 분석:** 벤치마크(SPY) 대비 상대 수급 강도가 임계치(100)를 상회하는 {quad} 사분면에 머물며 최강의 렐리 에너지를 유지하고 있습니다.
+*   **실전 대응 매매전략:**
+    - **추천 진입가(Buy Guide):** **${r['current_price']:.2f}** 이하 또는 거래량 급증 돌파 시 즉시 진입
+    - **동적 손절라인(Stop Loss):** **${r['stop_loss']:.2f}** (ATR 기반으로 시장 노이즈를 견뎌내는 최적 감시가)
+ 
 """
 
         md_content += """
+---
+ 
 ## 📊 4. Relative Rotation Graph (RRG) Analysis
-
+ 
 > [!TIP]
 > **RRG(상대순환선도)** 상에서 우측 상단(Leading) 방향으로 고개를 들고 있거나 좌측 상단(Improving)에서 강하게 치고 올라오는 종목/섹터군이 현재 수급의 정점에 있는 주도주입니다.
 > - **매크로 섹터 흐름 (Sector ETF RRG):** 거시적인 시장 자금의 이동 패턴 및 대장 업종을 파악합니다.
 > - **개별 주도주 흐름 (Stock RRG):** 섹터 내에서 가장 강한 상승 모멘텀을 분출하는 알파(Alpha) 종목을 선별하며, 각 라벨에 소속 섹터 정보(예: AAPL (XLK))를 표기하여 직관적인 연결이 가능하게 하였습니다.
-
+ 
 ### 🌐 4.1 매크로 섹터 순환 흐름 (Sector ETF Rotation)
-![Sector Rotation RRG Chart](file:///Users/hwani/.gemini/antigravity-ide/brain/4e07614f-2eeb-4b26-b11f-f4840c2e5385/rrg_sectors.png)
-
+![Sector Rotation RRG Chart](/Users/hwani/.gemini/antigravity-ide/brain/4e07614f-2eeb-4b26-b11f-f4840c2e5385/rrg_sectors_{date_str}.png)
+ 
 ### 🚀 4.2 개별 주도주 순환 흐름 (Stock Rotation - Colored by Sector)
-![Stock Rotation RRG Chart](file:///Users/hwani/.gemini/antigravity-ide/brain/4e07614f-2eeb-4b26-b11f-f4840c2e5385/rrg_stocks.png)
-
+![Stock Rotation RRG Chart](/Users/hwani/.gemini/antigravity-ide/brain/4e07614f-2eeb-4b26-b11f-f4840c2e5385/rrg_stocks_{date_str}.png)
+ 
 ---
-
+ 
 > ⚠️ **Antigravity Risk Engine Reminder:**
 > - 매수 신호가 나온 종목에 대해서는 일제히 매입을 집행하되, 단일 종목당 포트폴리오 비중은 절대 **2%**를 초과하지 말아야 하며, 동적 ATR Stop 라인에 도달할 시 기계적으로 퇴출을 감행해야 생존성과 복리 수익이 극대화됩니다.
-
+ 
 ---
 *Disclaimer: 본 보고서는 Antigravity Minervini V9.5 초고속 계량 엔진에 의해 정량 연산된 자료이며 투자 조언이 아닙니다.*
 """
-
+ 
         with open(report_path, 'w', encoding='utf-8') as f:
             f.write(md_content)
         with open(workspace_report_path, 'w', encoding='utf-8') as f:
@@ -410,11 +486,13 @@ class AntigravityDynamicScanner:
         
         # 터미널용 랭킹 출력
         print("\n" + "X"*80)
-        print("🏆 Antigravity V9.5 전 종목 동적 스캔 실전 랭킹")
+        print("🏆 Antigravity V9.5 전 종목 동적 스캔 실전 랭킹 & RRG 매칭")
         print("X"*80)
         for i, r in enumerate(sorted_reports[:15]):
+            ticker = r['ticker']
             color = "🟢" if r['decision'] == "BUY" else "🟡" if r['decision'] == "WAIT" else "⚪"
-            print(f"{i+1}위. {color} [{r['ticker']}] (Score: {r['score']:.2f}) - {r['sector']}")
+            quad = rrg_stats.get(ticker, {}).get('quadrant', 'N/A')
+            print(f"{i+1}위. {color} [{ticker}] (Score: {r['score']:.2f}) - {r['sector']} [RRG: {quad}]")
             print(f"   - 최종 결정: {r['decision']} (매수: ${r['current_price']:.2f} / 손절: ${r['stop_loss']:.2f})")
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 import os
 import sys
+from datetime import datetime
 from main_agent import AntigravityMasterV95
 from rrg_visualizer import RRGVisualizer
 
@@ -30,8 +31,9 @@ def main():
     print("📊 Generating Relative Rotation Graph (RRG) visualization...")
     print("=" * 80)
     
-    rrg_sectors_path = './rrg_sectors.png'
-    rrg_stocks_path = './rrg_stocks.png'
+    date_str = datetime.now().strftime('%Y-%m-%d')
+    rrg_sectors_path = f'./rrg_charts/rrg_sectors_{date_str}.png'
+    rrg_stocks_path = f'./rrg_charts/rrg_stocks_{date_str}.png'
     try:
         viz = RRGVisualizer()
         viz.generate_sector_rrg(sector_stock_map, rrg_sectors_path, tail_len=15)

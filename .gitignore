@@ -28,6 +28,8 @@ Thumbs.db
 *.gif
 tesla_family_portfolio_report.md
 us_market_analysis_dynamic.md
+us_market_analysis_dynamic_*.md
+options_trading_plan_*.md
 
 # State Files
 *.json
