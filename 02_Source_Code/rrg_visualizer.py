@@ -169,8 +169,8 @@ class RRGVisualizer:
         all_r = {}
         all_m = {}
         for sector in sectors:
-            ratio = (data[sector] / data[self.benchmark]) * 100
-            rs_ratio = ratio.rolling(20).mean()
+            rs = data[sector] / data[self.benchmark]
+            rs_ratio = (rs / rs.rolling(60).mean()) * 100
             rs_mom = rs_ratio.pct_change(10) * 100 + 100
             
             all_r[sector] = rs_ratio.tail(tail_len).values
@@ -180,9 +180,9 @@ class RRGVisualizer:
         all_x = np.concatenate(list(all_r.values()))
         all_y = np.concatenate(list(all_m.values()))
         
-        # 가로축과 세로축 편차 독립적으로 산출 (100 원점 대칭 유지 및 극단적 아웃라이어 왜곡 차단을 위해 2.0~120.0 제한)
-        max_dev_x = np.clip(max(abs(all_x - 100)), 2.0, 120.0)
-        max_dev_y = np.clip(max(abs(all_y - 100)), 2.0, 120.0)
+        # 가로축과 세로축 편차 독립적으로 산출 (100 원점 대칭 유지 및 극단적 아웃라이어 왜곡 차단을 위해 2.0~10.0 제한)
+        max_dev_x = np.clip(max(abs(all_x - 100)), 2.0, 10.0)
+        max_dev_y = np.clip(max(abs(all_y - 100)), 2.0, 10.0)
         
         half_width_x = max_dev_x * 1.15
         half_width_y = max_dev_y * 1.15
@@ -230,8 +230,8 @@ class RRGVisualizer:
         all_r = {}
         all_m = {}
         for stock in all_tickers:
-            ratio = (data[stock] / data[self.benchmark]) * 100
-            rs_ratio = ratio.rolling(20).mean()
+            rs = data[stock] / data[self.benchmark]
+            rs_ratio = (rs / rs.rolling(60).mean()) * 100
             rs_mom = rs_ratio.pct_change(10) * 100 + 100
             
             all_r[stock] = rs_ratio.tail(tail_len).values
@@ -241,9 +241,9 @@ class RRGVisualizer:
         all_x = np.concatenate(list(all_r.values()))
         all_y = np.concatenate(list(all_m.values()))
         
-        # 가로축과 세로축 편차 독립적으로 산출 (100 원점 대칭 유지 및 극단적 아웃라이어 왜곡 차단을 위해 2.0~120.0 제한)
-        max_dev_x = np.clip(max(abs(all_x - 100)), 2.0, 120.0)
-        max_dev_y = np.clip(max(abs(all_y - 100)), 2.0, 120.0)
+        # 가로축과 세로축 편차 독립적으로 산출 (100 원점 대칭 유지 및 극단적 아웃라이어 왜곡 차단을 위해 2.0~10.0 제한)
+        max_dev_x = np.clip(max(abs(all_x - 100)), 2.0, 10.0)
+        max_dev_y = np.clip(max(abs(all_y - 100)), 2.0, 10.0)
         
         half_width_x = max_dev_x * 1.15
         half_width_y = max_dev_y * 1.15
@@ -300,8 +300,8 @@ class RRGVisualizer:
             for stock in all_tickers:
                 if stock not in data.columns or data[stock].dropna().empty:
                     continue
-                ratio = (data[stock] / data[self.benchmark]) * 100
-                rs_ratio = ratio.rolling(20).mean()
+                rs = data[stock] / data[self.benchmark]
+                rs_ratio = (rs / rs.rolling(60).mean()) * 100
                 rs_mom = rs_ratio.pct_change(10) * 100 + 100
                 
                 latest_ratio = rs_ratio.iloc[-1]
