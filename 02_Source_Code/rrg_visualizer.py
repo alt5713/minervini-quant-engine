@@ -180,9 +180,9 @@ class RRGVisualizer:
         all_x = np.concatenate(list(all_r.values()))
         all_y = np.concatenate(list(all_m.values()))
         
-        # 가로축과 세로축 편차 독립적으로 산출 (100 원점 대칭 유지 및 극단적 아웃라이어 왜곡 차단을 위해 2.0~10.0 제한)
-        max_dev_x = np.clip(max(abs(all_x - 100)), 2.0, 10.0)
-        max_dev_y = np.clip(max(abs(all_y - 100)), 2.0, 10.0)
+        # 가로축과 세로축 편차 독립적으로 산출 (100 원점 대칭 유지 및 극단적 아웃라이어 왜곡 차단을 위해 2.0~130.0 제한)
+        max_dev_x = np.clip(max(abs(all_x - 100)), 2.0, 130.0)
+        max_dev_y = np.clip(max(abs(all_y - 100)), 2.0, 130.0)
         
         half_width_x = max_dev_x * 1.15
         half_width_y = max_dev_y * 1.15
@@ -241,9 +241,9 @@ class RRGVisualizer:
         all_x = np.concatenate(list(all_r.values()))
         all_y = np.concatenate(list(all_m.values()))
         
-        # 가로축과 세로축 편차 독립적으로 산출 (100 원점 대칭 유지 및 극단적 아웃라이어 왜곡 차단을 위해 2.0~10.0 제한)
-        max_dev_x = np.clip(max(abs(all_x - 100)), 2.0, 10.0)
-        max_dev_y = np.clip(max(abs(all_y - 100)), 2.0, 10.0)
+        # 가로축과 세로축 편차 독립적으로 산출 (100 원점 대칭 유지 및 극단적 아웃라이어 왜곡 차단을 위해 2.0~130.0 제한)
+        max_dev_x = np.clip(max(abs(all_x - 100)), 2.0, 130.0)
+        max_dev_y = np.clip(max(abs(all_y - 100)), 2.0, 130.0)
         
         half_width_x = max_dev_x * 1.15
         half_width_y = max_dev_y * 1.15
