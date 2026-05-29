@@ -80,32 +80,32 @@ class RRGVisualizer:
         ax.axhline(100, color='#555555', linestyle='-', linewidth=1.5, alpha=0.6)
         ax.axvline(100, color='#555555', linestyle='-', linewidth=1.5, alpha=0.6)
 
-        # Quadrant text labels & Detailed strategies (한국어 + 영어)
+        # Quadrant text labels & Detailed strategies (Pure English to prevent font rendering errors)
         # 1. LEADING (Top Right)
         ax.text(100 + half_width_x * 0.5, 100 + half_width_y * 0.82, 'LEADING', 
                 fontsize=15, color='#385723', fontweight='bold', alpha=0.9, ha='center', va='center')
-        ax.text(100 + half_width_x * 0.5, 100 + half_width_y * 0.64, '시장 주도 강세주\n[매수 / 보유]\n(Active Buy / Hold)', 
+        ax.text(100 + half_width_x * 0.5, 100 + half_width_y * 0.64, 'Market Leaders\n[Active Buy / Hold]\n(Active Buy / Hold)', 
                 fontsize=8.5, color='#2c421b', fontweight='bold', alpha=0.85, ha='center', va='center',
                 bbox=dict(boxstyle="round,pad=0.3", facecolor='#f4fbf1', edgecolor='#385723', lw=0.6, alpha=0.8))
 
         # 2. IMPROVING (Top Left)
         ax.text(100 - half_width_x * 0.5, 100 + half_width_y * 0.82, 'IMPROVING', 
                 fontsize=15, color='#1F4E79', fontweight='bold', alpha=0.9, ha='center', va='center')
-        ax.text(100 - half_width_x * 0.5, 100 + half_width_y * 0.64, '회복 및 추세 전환\n[관심 / 분할매수]\n(Watch / Accumulate)', 
+        ax.text(100 - half_width_x * 0.5, 100 + half_width_y * 0.64, 'Trend Reversal\n[Watch / Accumulate]\n(Watch / Accumulate)', 
                 fontsize=8.5, color='#183c5e', fontweight='bold', alpha=0.85, ha='center', va='center',
                 bbox=dict(boxstyle="round,pad=0.3", facecolor='#f2f6fc', edgecolor='#1F4E79', lw=0.6, alpha=0.8))
 
         # 3. LAGGING (Bottom Left)
         ax.text(100 - half_width_x * 0.5, 100 - half_width_y * 0.82, 'LAGGING', 
                 fontsize=15, color='#C65911', fontweight='bold', alpha=0.9, ha='center', va='center')
-        ax.text(100 - half_width_x * 0.5, 100 - half_width_y * 0.64, '소외주 / 리스크 경계\n[관망 / 리스크회피]\n(Avoid / Stop-Loss)', 
+        ax.text(100 - half_width_x * 0.5, 100 - half_width_y * 0.64, 'Underperforming\n[Avoid / Stop-Loss]\n(Avoid / Stop-Loss)', 
                 fontsize=8.5, color='#94420c', fontweight='bold', alpha=0.85, ha='center', va='center',
                 bbox=dict(boxstyle="round,pad=0.3", facecolor='#fff7f2', edgecolor='#C65911', lw=0.6, alpha=0.8))
 
         # 4. WEAKENING (Bottom Right)
         ax.text(100 + half_width_x * 0.5, 100 - half_width_y * 0.82, 'WEAKENING', 
                 fontsize=15, color='#7F6000', fontweight='bold', alpha=0.9, ha='center', va='center')
-        ax.text(100 + half_width_x * 0.5, 100 - half_width_y * 0.64, '상승 둔화 / 경계\n[분할익절 / 주의]\n(Take Profit / Caution)', 
+        ax.text(100 + half_width_x * 0.5, 100 - half_width_y * 0.64, 'Momentum Slowdown\n[Take Profit / Caution]\n(Take Profit / Caution)', 
                 fontsize=8.5, color='#614900', fontweight='bold', alpha=0.85, ha='center', va='center',
                 bbox=dict(boxstyle="round,pad=0.3", facecolor='#fffdf2', edgecolor='#7F6000', lw=0.6, alpha=0.8))
 
@@ -180,9 +180,9 @@ class RRGVisualizer:
         all_x = np.concatenate(list(all_r.values()))
         all_y = np.concatenate(list(all_m.values()))
         
-        # 가로축과 세로축 편차 독립적으로 산출 (100 원점 대칭 유지 및 극단적 아웃라이어 왜곡 차단을 위해 2.0~10.0 제한)
-        max_dev_x = np.clip(max(abs(all_x - 100)), 2.0, 10.0)
-        max_dev_y = np.clip(max(abs(all_y - 100)), 2.0, 10.0)
+        # 가로축과 세로축 편차 독립적으로 산출 (100 원점 대칭 유지 및 극단적 아웃라이어 왜곡 차단을 위해 2.0~120.0 제한)
+        max_dev_x = np.clip(max(abs(all_x - 100)), 2.0, 120.0)
+        max_dev_y = np.clip(max(abs(all_y - 100)), 2.0, 120.0)
         
         half_width_x = max_dev_x * 1.15
         half_width_y = max_dev_y * 1.15
@@ -241,9 +241,9 @@ class RRGVisualizer:
         all_x = np.concatenate(list(all_r.values()))
         all_y = np.concatenate(list(all_m.values()))
         
-        # 가로축과 세로축 편차 독립적으로 산출 (100 원점 대칭 유지 및 극단적 아웃라이어 왜곡 차단을 위해 2.0~10.0 제한)
-        max_dev_x = np.clip(max(abs(all_x - 100)), 2.0, 10.0)
-        max_dev_y = np.clip(max(abs(all_y - 100)), 2.0, 10.0)
+        # 가로축과 세로축 편차 독립적으로 산출 (100 원점 대칭 유지 및 극단적 아웃라이어 왜곡 차단을 위해 2.0~120.0 제한)
+        max_dev_x = np.clip(max(abs(all_x - 100)), 2.0, 120.0)
+        max_dev_y = np.clip(max(abs(all_y - 100)), 2.0, 120.0)
         
         half_width_x = max_dev_x * 1.15
         half_width_y = max_dev_y * 1.15
