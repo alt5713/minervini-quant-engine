@@ -180,12 +180,12 @@ class RRGVisualizer:
         all_x = np.concatenate(list(all_r.values()))
         all_y = np.concatenate(list(all_m.values()))
         
-        # 가로축과 세로축 편차 독립적으로 산출 (100 원점 대칭 유지 및 극단적 아웃라이어 왜곡 차단을 위해 2.0~130.0 제한)
-        max_dev_x = np.clip(max(abs(all_x - 100)), 2.0, 130.0)
-        max_dev_y = np.clip(max(abs(all_y - 100)), 2.0, 130.0)
+        # 가로축과 세로축의 최대 편차를 통합 계산하여 완벽한 상하좌우 대칭형(정사각형 비율) 스케일 구현 (100 원점 대칭 유지 및 극단적 아웃라이어 차단)
+        max_dev = max(max(abs(all_x - 100)), max(abs(all_y - 100)))
+        max_dev = np.clip(max_dev, 2.0, 130.0)
         
-        half_width_x = max_dev_x * 1.15
-        half_width_y = max_dev_y * 1.15
+        half_width_x = max_dev * 1.15
+        half_width_y = max_dev * 1.15
         
         x_min, x_max = 100 - half_width_x, 100 + half_width_x
         y_min, y_max = 100 - half_width_y, 100 + half_width_y
@@ -241,12 +241,12 @@ class RRGVisualizer:
         all_x = np.concatenate(list(all_r.values()))
         all_y = np.concatenate(list(all_m.values()))
         
-        # 가로축과 세로축 편차 독립적으로 산출 (100 원점 대칭 유지 및 극단적 아웃라이어 왜곡 차단을 위해 2.0~130.0 제한)
-        max_dev_x = np.clip(max(abs(all_x - 100)), 2.0, 130.0)
-        max_dev_y = np.clip(max(abs(all_y - 100)), 2.0, 130.0)
+        # 가로축과 세로축의 최대 편차를 통합 계산하여 완벽한 상하좌우 대칭형(정사각형 비율) 스케일 구현 (100 원점 대칭 유지 및 극단적 아웃라이어 차단)
+        max_dev = max(max(abs(all_x - 100)), max(abs(all_y - 100)))
+        max_dev = np.clip(max_dev, 2.0, 130.0)
         
-        half_width_x = max_dev_x * 1.15
-        half_width_y = max_dev_y * 1.15
+        half_width_x = max_dev * 1.15
+        half_width_y = max_dev * 1.15
         
         x_min, x_max = 100 - half_width_x, 100 + half_width_x
         y_min, y_max = 100 - half_width_y, 100 + half_width_y
