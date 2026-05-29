@@ -256,19 +256,19 @@ class RRGVisualizer:
             z_r = (rs_ratio_raw - 100) / r_std
             z_m = (rs_mom_raw - 100) / m_std
             
-            # 4단계: 가로축(70~130) 및 세로축(90~110)의 최적 해상도를 위해 시그마 배율(x축 12.0, y축 4.0)을 적용해 100 원점 주변에 황금비율로 배치
-            rs_ratio_final = 100 + z_r * 12.0
-            rs_mom_final = 100 + z_m * 4.0
+            # 4단계: 가로축 및 세로축에 동일한 시마 배율(10.0)을 곱해 100 원점 주변에 완벽한 구형(Circle) 형태로 균형 배치
+            rs_ratio_final = 100 + z_r * 10.0
+            rs_mom_final = 100 + z_m * 10.0
             
             all_r[stock] = rs_ratio_final.tail(tail_len).values
             all_m[stock] = rs_mom_final.tail(tail_len).values
 
-        # 가로축은 70~130, 세로축은 90~110 범위로 각각 다르게 고정하여 가독성 극대화 (100 원점 대칭 유지)
+        # 가로세로 스케일 비율을 70~130으로 완벽히 동일하게 맞춰 왜곡 차단 (100 원점 중심 균형 확보)
         half_width_x = 30.0
-        half_width_y = 10.0
+        half_width_y = 30.0
         
         x_min, x_max = 70.0, 130.0
-        y_min, y_max = 90.0, 110.0
+        y_min, y_max = 70.0, 130.0
         
         # 사분면 및 상세 텍스트 가이드 설정 적용
         self._setup_quadrants(ax, half_width_x, half_width_y)
@@ -284,9 +284,9 @@ class RRGVisualizer:
             for stock in stocks:
                 if stock in all_r:
                     label_text = f"{stock} ({sector})"
-                    # 뚫고 나가는 종목은 그래프 모서리 상단/하단 꼭지점이나 가장자리에 예쁘게 걸치도록 가로 70.5~129.5, 세로 90.5~109.5 범위로 클리핑 수행
+                    # 뚫고 나가는 종목은 그래프 모서리 상단/하단 꼭지점이나 가장자리에 예쁘게 걸치도록 가로세로 모두 70.5~129.5 범위로 클리핑 수행
                     clipped_r = np.clip(all_r[stock], 70.5, 129.5)
-                    clipped_m = np.clip(all_m[stock], 90.5, 109.5)
+                    clipped_m = np.clip(all_m[stock], 70.5, 129.5)
                     self._plot_tail_with_flow(ax, clipped_r, clipped_m, stock, color, is_sector=False, label_text=label_text)
             
         ax.set_title(f'US Stock Rotation Graph (Colored by Sector, Relative to {self.benchmark}) - {as_of_date}\nTail: {tail_len} Days', 
@@ -295,6 +295,7 @@ class RRGVisualizer:
         ax.set_ylabel('RS-Momentum (Momentum strength)', fontsize=12, fontweight='bold')
         ax.set_xlim(x_min, x_max)
         ax.set_ylim(y_min, y_max)
+        ax.set_aspect('equal', adjustable='box') # 꼬리의 1:1 회전각 왜곡 방지를 위해 시각적 가로세로 비율 강제 1:1 고정
         ax.grid(True, alpha=0.15, linestyle=':')
         
         # 섹터 매핑 정보를 보여주는 범례 배치
@@ -338,8 +339,8 @@ class RRGVisualizer:
                 z_r = (rs_ratio_raw - 100) / r_std
                 z_m = (rs_mom_raw - 100) / m_std
                 
-                latest_ratio = 100 + z_r.iloc[-1] * 12.0
-                latest_mom = 100 + z_m.iloc[-1] * 4.0
+                latest_ratio = 100 + z_r.iloc[-1] * 10.0
+                latest_mom = 100 + z_m.iloc[-1] * 10.0
                 
                 if np.isnan(latest_ratio) or np.isnan(latest_mom):
                     continue
