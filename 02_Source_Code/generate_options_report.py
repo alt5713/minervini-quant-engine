@@ -32,8 +32,21 @@ def generate_report(ticker):
     workspace_chart_path = os.path.join(workspace_charts_dir, f"options_{ticker}_{date_str}.png")
     workspace_report_path = os.path.join(workspace_root, f"options_trading_plan_{ticker}_{date_str}.md")
 
-    # Conversation brain paths (Artifact Destination)
-    brain_dir = "/Users/hwani/.gemini/antigravity-ide/brain/c25dc4e5-ae72-42a9-861f-8baeecbd6473"
+    # Conversation brain paths (Artifact Destination) - Dynamically resolved to avoid personal info leak
+    home_dir = os.path.expanduser("~")
+    brain_base = os.path.join(home_dir, ".gemini", "antigravity-ide", "brain")
+    brain_dir = None
+    if os.path.exists(brain_base):
+        try:
+            subdirs = [os.path.join(brain_base, d) for d in os.listdir(brain_base)]
+            subdirs = [d for d in subdirs if os.path.isdir(d)]
+            if subdirs:
+                brain_dir = max(subdirs, key=os.path.getmtime)
+        except:
+            pass
+    if not brain_dir:
+        brain_dir = os.path.join(workspace_root, ".system_generated_artifacts")
+
     os.makedirs(brain_dir, exist_ok=True)
     brain_chart_path = os.path.join(brain_dir, f"options_{ticker}_{date_str}.png")
     brain_report_path = os.path.join(brain_dir, f"options_trading_plan_{ticker}_{date_str}.md")

@@ -307,8 +307,11 @@ class AntigravityDynamicScanner:
 
         # RRG 차트 생성 및 분석 스탯 추출 (파일명에 날짜 추가)
         date_str = datetime.now().strftime('%Y-%m-%d')
-        rrg_sectors_path = f'/Users/hwani/00. Antigravity폴더/26. 미너비니_Qwen버전/rrg_charts/rrg_sectors_{date_str}.png'
-        rrg_stocks_path = f'/Users/hwani/00. Antigravity폴더/26. 미너비니_Qwen버전/rrg_charts/rrg_stocks_{date_str}.png'
+        # Get dynamic workspace root to prevent personal path exposure
+        workspace_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        
+        rrg_sectors_path = os.path.join(workspace_root, 'rrg_charts', f'rrg_sectors_{date_str}.png')
+        rrg_stocks_path = os.path.join(workspace_root, 'rrg_charts', f'rrg_stocks_{date_str}.png')
         print("\n📊 RRG 상대순환선도 그래프 생성 및 실시간 수급 매칭 분석 중 (꼬리: 15일)...")
         rrg_stats = {}
         try:
@@ -318,18 +321,32 @@ class AntigravityDynamicScanner:
             # 실시간 RRG 분석 스탯 확보
             rrg_stats = self.rrg_viz.get_latest_rrg_stats(sector_stock_map)
             
-            # 대화 아티팩트 보관용 폴더로 자동 복사 (경로 존재 여부 확인 후 복사)
-            brain_dir = '/Users/hwani/.gemini/antigravity-ide/brain/4e07614f-2eeb-4b26-b11f-f4840c2e5385'
+            # 대화 아티팩트 보관용 폴더로 자동 복사 (개인정보 노출 방지 동적 처리)
+            home_dir = os.path.expanduser("~")
+            brain_base = os.path.join(home_dir, ".gemini", "antigravity-ide", "brain")
+            brain_dir = None
+            if os.path.exists(brain_base):
+                try:
+                    subdirs = [os.path.join(brain_base, d) for d in os.listdir(brain_base)]
+                    subdirs = [d for d in subdirs if os.path.isdir(d)]
+                    if subdirs:
+                        brain_dir = max(subdirs, key=os.path.getmtime)
+                except:
+                    pass
+            if not brain_dir:
+                brain_dir = os.path.join(workspace_root, ".system_generated_artifacts")
+            
             os.makedirs(brain_dir, exist_ok=True)
-            os.system(f'cp "{rrg_sectors_path}" "{brain_dir}/rrg_sectors_{date_str}.png"')
-            os.system(f'cp "{rrg_stocks_path}" "{brain_dir}/rrg_stocks_{date_str}.png"')
+            import shutil
+            shutil.copy(rrg_sectors_path, os.path.join(brain_dir, f"rrg_sectors_{date_str}.png"))
+            shutil.copy(rrg_stocks_path, os.path.join(brain_dir, f"rrg_stocks_{date_str}.png"))
             print(f"🎉 RRG 차트 저장 완료 및 스탯 분석 성공: \n - {rrg_sectors_path}\n - {rrg_stocks_path}")
         except Exception as e:
             print(f"⚠️ RRG 차트 생성 및 분석 실패: {e}")
 
         # 2. 마크다운 종합 리포트 발행
-        report_path = f'/Users/hwani/.gemini/antigravity-ide/brain/4e07614f-2eeb-4b26-b11f-f4840c2e5385/us_market_analysis_dynamic_{date_str}.md'
-        workspace_report_path = f'/Users/hwani/00. Antigravity폴더/26. 미너비니_Qwen버전/us_market_analysis_dynamic_{date_str}.md'
+        report_path = os.path.join(brain_dir, f"us_market_analysis_dynamic_{date_str}.md")
+        workspace_report_path = os.path.join(workspace_root, f"us_market_analysis_dynamic_{date_str}.md")
         
         now_str = datetime.now().strftime('%Y-%m-%d %H:%M')
         
@@ -463,10 +480,10 @@ RRG 상에서 **LEADING**이나 **IMPROVING**에 위치한 종목들이 실질�
 > - **개별 주도주 흐름 (Stock RRG):** 섹터 내에서 가장 강한 상승 모멘텀을 분출하는 알파(Alpha) 종목을 선별하며, 각 라벨에 소속 섹터 정보(예: AAPL (XLK))를 표기하여 직관적인 연결이 가능하게 하였습니다.
  
 ### 🌐 4.1 매크로 섹터 순환 흐름 (Sector ETF Rotation)
-![Sector Rotation RRG Chart](/Users/hwani/.gemini/antigravity-ide/brain/4e07614f-2eeb-4b26-b11f-f4840c2e5385/rrg_sectors_{date_str}.png)
+![Sector Rotation RRG Chart]({brain_dir}/rrg_sectors_{date_str}.png)
  
 ### 🚀 4.2 개별 주도주 순환 흐름 (Stock Rotation - Colored by Sector)
-![Stock Rotation RRG Chart](/Users/hwani/.gemini/antigravity-ide/brain/4e07614f-2eeb-4b26-b11f-f4840c2e5385/rrg_stocks_{date_str}.png)
+![Stock Rotation RRG Chart]({brain_dir}/rrg_stocks_{date_str}.png)
  
 ---
  
