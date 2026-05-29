@@ -14,6 +14,25 @@ echo -e "${BLUE}================================================================
 echo -e "${GREEN}🚀 Antigravity Minervini Quant Engine - One-Click Automated Setup${NC}"
 echo -e "${BLUE}======================================================================${NC}"
 
+# 0. Repository Auto-Clone Check (for raw curl installations)
+if [ ! -f "02_Source_Code/scan_us_market.py" ]; then
+    echo -e "${YELLOW} ⚠️  Codebase not found in current directory.${NC}"
+    echo -e " > Cloning minervini-quant-engine repository automatically from GitHub..."
+    if ! command -v git &> /dev/null
+    then
+        echo -e "${RED}❌ Git could not be found. Please install Git and try again.${NC}"
+        exit 1
+    fi
+    git clone https://github.com/alt5713/minervini-quant-engine.git
+    if [ $? -eq 0 ]; then
+        cd minervini-quant-engine
+        echo -e "${GREEN} ✔ Successfully cloned repository and entered the folder.${NC}"
+    else
+        echo -e "${RED}❌ Failed to clone repository. Please check your internet connection.${NC}"
+        exit 1
+    fi
+fi
+
 # 1. Check Python 3
 echo -e " > Checking Python 3 installation..."
 if ! command -v python3 &> /dev/null
