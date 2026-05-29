@@ -254,12 +254,12 @@ class RRGVisualizer:
             all_r[stock] = rs_ratio.tail(tail_len).values
             all_m[stock] = rs_mom.tail(tail_len).values
 
-        # 개별 종목은 70~130 범위로 완전 고정 (100 원점 대칭 유지)
+        # 가로축은 70~130, 세로축은 85~115 범위로 각각 다르게 고정하여 가독성 극대화 (100 원점 대칭 유지)
         half_width_x = 30.0
-        half_width_y = 30.0
+        half_width_y = 15.0
         
         x_min, x_max = 70.0, 130.0
-        y_min, y_max = 70.0, 130.0
+        y_min, y_max = 85.0, 115.0
         
         # 사분면 및 상세 텍스트 가이드 설정 적용
         self._setup_quadrants(ax, half_width_x, half_width_y)
@@ -275,9 +275,9 @@ class RRGVisualizer:
             for stock in stocks:
                 if stock in all_r:
                     label_text = f"{stock} ({sector})"
-                    # 뚫고 나가는 종목은 그래프 모서리 상단/하단 꼭지점이나 가장자리에 예쁘게 걸치도록 70.5~129.5 범위로 클리핑 수행
+                    # 뚫고 나가는 종목은 그래프 모서리 상단/하단 꼭지점이나 가장자리에 예쁘게 걸치도록 가로 70.5~129.5, 세로 85.5~114.5 범위로 클리핑 수행
                     clipped_r = np.clip(all_r[stock], 70.5, 129.5)
-                    clipped_m = np.clip(all_m[stock], 70.5, 129.5)
+                    clipped_m = np.clip(all_m[stock], 85.5, 114.5)
                     self._plot_tail_with_flow(ax, clipped_r, clipped_m, stock, color, is_sector=False, label_text=label_text)
             
         ax.set_title(f'US Stock Rotation Graph (Colored by Sector, Relative to {self.benchmark}) - {as_of_date}\nTail: {tail_len} Days', 
