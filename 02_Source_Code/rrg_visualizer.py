@@ -165,12 +165,19 @@ class RRGVisualizer:
         
         fig, ax = plt.subplots(figsize=(12, 10))
         
-        # 전체 데이터에 대한 RS-Ratio, RS-Momentum 계산
+        # 피어그룹 정규화 (섹터 그룹 내 상대강도 정규화 적용)
+        raw_rs = {}
+        for sector in sectors:
+            raw_rs[sector] = data[sector] / data[self.benchmark]
+            
+        rs_df = pd.DataFrame(raw_rs)
+        rs_avg = rs_df.mean(axis=1)
+        
         all_r = {}
         all_m = {}
         for sector in sectors:
-            rs = data[sector] / data[self.benchmark]
-            rs_ratio = (rs / rs.rolling(60).mean()) * 100
+            rs_norm = (rs_df[sector] / rs_avg) * 100
+            rs_ratio = rs_norm.rolling(20).mean()
             rs_mom = rs_ratio.pct_change(10) * 100 + 100
             
             all_r[sector] = rs_ratio.tail(tail_len).values
@@ -182,7 +189,7 @@ class RRGVisualizer:
         
         # 가로축과 세로축의 최대 편차를 통합 계산하여 완벽한 상하좌우 대칭형(정사각형 비율) 스케일 구현 (100 원점 대칭 유지 및 극단적 아웃라이어 차단)
         max_dev = max(max(abs(all_x - 100)), max(abs(all_y - 100)))
-        max_dev = np.clip(max_dev, 2.0, 130.0)
+        max_dev = np.clip(max_dev, 2.0, 15.0) # 섹터는 변동성이 작으므로 15.0으로 컴팩트하게 제한
         
         half_width_x = max_dev * 1.15
         half_width_y = max_dev * 1.15
@@ -193,10 +200,12 @@ class RRGVisualizer:
         # 사분면 및 상세 텍스트 가이드 설정 적용
         self._setup_quadrants(ax, half_width_x, half_width_y)
         
-        # 섹터별 궤적 플롯
+        # 섹터별 궤적 플롯 (경계면 클리핑 적용)
         for i, sector in enumerate(sectors):
             color = self.sector_colors.get(sector, self.default_color_map(i % 10))
-            self._plot_tail_with_flow(ax, all_r[sector], all_m[sector], sector, color, is_sector=True)
+            clipped_r = np.clip(all_r[sector], x_min + 0.2, x_max - 0.2)
+            clipped_m = np.clip(all_m[sector], y_min + 0.2, y_max - 0.2)
+            self._plot_tail_with_flow(ax, clipped_r, clipped_m, sector, color, is_sector=True)
             
         ax.set_title(f'US Market Sector Rotation Graph (Relative to {self.benchmark}) - {as_of_date}\nTail: {tail_len} Days', 
                      fontsize=15, fontweight='bold', pad=15)
@@ -227,29 +236,30 @@ class RRGVisualizer:
         
         fig, ax = plt.subplots(figsize=(14, 11))
         
+        # 피어그룹 정규화 (전체 종목 그룹 내 상대강도 정규화 적용)
+        raw_rs = {}
+        for stock in all_tickers:
+            raw_rs[stock] = data[stock] / data[self.benchmark]
+            
+        rs_df = pd.DataFrame(raw_rs)
+        rs_avg = rs_df.mean(axis=1) # 피어그룹 평균 상대강도 계산 (가운데 종목이 퍼지도록 중심 고정)
+        
         all_r = {}
         all_m = {}
         for stock in all_tickers:
-            rs = data[stock] / data[self.benchmark]
-            rs_ratio = (rs / rs.rolling(60).mean()) * 100
+            rs_norm = (rs_df[stock] / rs_avg) * 100
+            rs_ratio = rs_norm.rolling(60).mean()
             rs_mom = rs_ratio.pct_change(10) * 100 + 100
             
             all_r[stock] = rs_ratio.tail(tail_len).values
             all_m[stock] = rs_mom.tail(tail_len).values
 
-        # 사분면 범위 산출
-        all_x = np.concatenate(list(all_r.values()))
-        all_y = np.concatenate(list(all_m.values()))
+        # 개별 종목은 70~130 범위로 완전 고정 (100 원점 대칭 유지)
+        half_width_x = 30.0
+        half_width_y = 30.0
         
-        # 가로축과 세로축의 최대 편차를 통합 계산하여 완벽한 상하좌우 대칭형(정사각형 비율) 스케일 구현 (100 원점 대칭 유지 및 극단적 아웃라이어 차단)
-        max_dev = max(max(abs(all_x - 100)), max(abs(all_y - 100)))
-        max_dev = np.clip(max_dev, 2.0, 130.0)
-        
-        half_width_x = max_dev * 1.15
-        half_width_y = max_dev * 1.15
-        
-        x_min, x_max = 100 - half_width_x, 100 + half_width_x
-        y_min, y_max = 100 - half_width_y, 100 + half_width_y
+        x_min, x_max = 70.0, 130.0
+        y_min, y_max = 70.0, 130.0
         
         # 사분면 및 상세 텍스트 가이드 설정 적용
         self._setup_quadrants(ax, half_width_x, half_width_y)
@@ -265,7 +275,10 @@ class RRGVisualizer:
             for stock in stocks:
                 if stock in all_r:
                     label_text = f"{stock} ({sector})"
-                    self._plot_tail_with_flow(ax, all_r[stock], all_m[stock], stock, color, is_sector=False, label_text=label_text)
+                    # 뚫고 나가는 종목은 그래프 모서리 상단/하단 꼭지점이나 가장자리에 예쁘게 걸치도록 70.5~129.5 범위로 클리핑 수행
+                    clipped_r = np.clip(all_r[stock], 70.5, 129.5)
+                    clipped_m = np.clip(all_m[stock], 70.5, 129.5)
+                    self._plot_tail_with_flow(ax, clipped_r, clipped_m, stock, color, is_sector=False, label_text=label_text)
             
         ax.set_title(f'US Stock Rotation Graph (Colored by Sector, Relative to {self.benchmark}) - {as_of_date}\nTail: {tail_len} Days', 
                      fontsize=16, fontweight='bold', pad=15)
@@ -296,12 +309,23 @@ class RRGVisualizer:
         print(f"📊 실시간 RRG 정밀 매칭 분석 수행 중 (대상 종목: {len(all_tickers)}개)...")
         try:
             data = yf.download(all_tickers + [self.benchmark], period='6mo', progress=False)['Close']
-            stats = {}
+            
+            # 피어그룹 정규화 (전체 종목 그룹 내 상대강도 정규화 동일 적용)
+            raw_rs = {}
             for stock in all_tickers:
                 if stock not in data.columns or data[stock].dropna().empty:
                     continue
-                rs = data[stock] / data[self.benchmark]
-                rs_ratio = (rs / rs.rolling(60).mean()) * 100
+                raw_rs[stock] = data[stock] / data[self.benchmark]
+            
+            rs_df = pd.DataFrame(raw_rs)
+            rs_avg = rs_df.mean(axis=1)
+            
+            stats = {}
+            for stock in all_tickers:
+                if stock not in rs_df.columns:
+                    continue
+                rs_norm = (rs_df[stock] / rs_avg) * 100
+                rs_ratio = rs_norm.rolling(60).mean()
                 rs_mom = rs_ratio.pct_change(10) * 100 + 100
                 
                 latest_ratio = rs_ratio.iloc[-1]
