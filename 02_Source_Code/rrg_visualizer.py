@@ -236,23 +236,32 @@ class RRGVisualizer:
         
         fig, ax = plt.subplots(figsize=(14, 11))
         
-        # 피어그룹 정규화 (전체 종목 그룹 내 상대강도 정규화 적용)
-        raw_rs = {}
-        for stock in all_tickers:
-            raw_rs[stock] = data[stock] / data[self.benchmark]
-            
-        rs_df = pd.DataFrame(raw_rs)
-        rs_avg = rs_df.mean(axis=1) # 피어그룹 평균 상대강도 계산 (가운데 종목이 퍼지도록 중심 고정)
-        
+        # Z-score 기반 정밀 시그마 정규화 수행 (명목 주가 왜곡 및 좌우 쏠림을 완벽히 해결하여 중심 원 주변으로 예쁘게 배치)
         all_r = {}
         all_m = {}
         for stock in all_tickers:
-            rs_norm = (rs_df[stock] / rs_avg) * 100
-            rs_ratio = rs_norm.rolling(60).mean()
-            rs_mom = rs_ratio.pct_change(10) * 100 + 100
+            rs = data[stock] / data[self.benchmark]
             
-            all_r[stock] = rs_ratio.tail(tail_len).values
-            all_m[stock] = rs_mom.tail(tail_len).values
+            # 1단계: 종목 자체의 60일 이동평균으로 상대강도를 1차 정규화 (명목 주가 크기 왜곡 원천 차단)
+            rs_ratio_raw = (rs / rs.rolling(60).mean()) * 100
+            rs_mom_raw = rs_ratio_raw.pct_change(10) * 100 + 100
+            
+            # 2단계: 과거 데이터의 표준편차를 구함
+            r_clean = rs_ratio_raw.dropna()
+            m_clean = rs_mom_raw.dropna()
+            r_std = r_clean.std() if r_clean.std() > 0 else 1.0
+            m_std = m_clean.std() if m_clean.std() > 0 else 1.0
+            
+            # 3단계: Z-score(시그마 편차) 변환
+            z_r = (rs_ratio_raw - 100) / r_std
+            z_m = (rs_mom_raw - 100) / m_std
+            
+            # 4단계: 가로축(70~130) 및 세로축(90~110)의 최적 해상도를 위해 시그마 배율(x축 12.0, y축 4.0)을 적용해 100 원점 주변에 황금비율로 배치
+            rs_ratio_final = 100 + z_r * 12.0
+            rs_mom_final = 100 + z_m * 4.0
+            
+            all_r[stock] = rs_ratio_final.tail(tail_len).values
+            all_m[stock] = rs_mom_final.tail(tail_len).values
 
         # 가로축은 70~130, 세로축은 90~110 범위로 각각 다르게 고정하여 가독성 극대화 (100 원점 대칭 유지)
         half_width_x = 30.0
@@ -310,26 +319,27 @@ class RRGVisualizer:
         try:
             data = yf.download(all_tickers + [self.benchmark], period='6mo', progress=False)['Close']
             
-            # 피어그룹 정규화 (전체 종목 그룹 내 상대강도 정규화 동일 적용)
-            raw_rs = {}
+            stats = {}
             for stock in all_tickers:
                 if stock not in data.columns or data[stock].dropna().empty:
                     continue
-                raw_rs[stock] = data[stock] / data[self.benchmark]
-            
-            rs_df = pd.DataFrame(raw_rs)
-            rs_avg = rs_df.mean(axis=1)
-            
-            stats = {}
-            for stock in all_tickers:
-                if stock not in rs_df.columns:
-                    continue
-                rs_norm = (rs_df[stock] / rs_avg) * 100
-                rs_ratio = rs_norm.rolling(60).mean()
-                rs_mom = rs_ratio.pct_change(10) * 100 + 100
+                rs = data[stock] / data[self.benchmark]
                 
-                latest_ratio = rs_ratio.iloc[-1]
-                latest_mom = rs_mom.iloc[-1]
+                # 동일한 Z-score 정밀 시그마 정규화 수식 대입 (스탯 분류와 시각화 차트의 100% 오차 없는 싱크)
+                rs_ratio_raw = (rs / rs.rolling(60).mean()) * 100
+                rs_mom_raw = rs_ratio_raw.pct_change(10) * 100 + 100
+                
+                r_clean = rs_ratio_raw.dropna()
+                m_clean = rs_mom_raw.dropna()
+                
+                r_std = r_clean.std() if r_clean.std() > 0 else 1.0
+                m_std = m_clean.std() if m_clean.std() > 0 else 1.0
+                
+                z_r = (rs_ratio_raw - 100) / r_std
+                z_m = (rs_mom_raw - 100) / m_std
+                
+                latest_ratio = 100 + z_r.iloc[-1] * 12.0
+                latest_mom = 100 + z_m.iloc[-1] * 4.0
                 
                 if np.isnan(latest_ratio) or np.isnan(latest_mom):
                     continue
