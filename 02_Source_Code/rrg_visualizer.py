@@ -165,37 +165,39 @@ class RRGVisualizer:
         
         fig, ax = plt.subplots(figsize=(12, 10))
         
-        # 피어그룹 정규화 (섹터 그룹 내 상대강도 정규화 적용)
-        raw_rs = {}
-        for sector in sectors:
-            raw_rs[sector] = data[sector] / data[self.benchmark]
-            
-        rs_df = pd.DataFrame(raw_rs)
-        rs_avg = rs_df.mean(axis=1)
-        
+        # Z-score 기반 정밀 시그마 정규화 수행 (명목 가격 스케일 제거 및 원점 100 기준 완벽 대칭 구조 구현)
         all_r = {}
         all_m = {}
         for sector in sectors:
-            rs_norm = (rs_df[sector] / rs_avg) * 100
-            rs_ratio = rs_norm.rolling(20).mean()
-            rs_mom = rs_ratio.pct_change(10) * 100 + 100
+            rs = data[sector] / data[self.benchmark]
             
-            all_r[sector] = rs_ratio.tail(tail_len).values
-            all_m[sector] = rs_mom.tail(tail_len).values
+            # 1단계: 각 섹터 자체의 20일 이동평균으로 1차 정규화
+            rs_ratio_raw = (rs / rs.rolling(20).mean()) * 100
+            rs_mom_raw = rs_ratio_raw.pct_change(10) * 100 + 100
+            
+            # 2단계: 과거 데이터의 표준편차를 구함
+            r_clean = rs_ratio_raw.dropna()
+            m_clean = rs_mom_raw.dropna()
+            r_std = r_clean.std() if r_clean.std() > 0 else 1.0
+            m_std = m_clean.std() if m_clean.std() > 0 else 1.0
+            
+            # 3단계: Z-score(시그마 편차) 변환
+            z_r = (rs_ratio_raw - 100) / r_std
+            z_m = (rs_mom_raw - 100) / m_std
+            
+            # 4단계: 개별 종목과 완벽히 동일한 변동성 스케일링(10.0 배율)을 적용해 원점 100 주변에 구형 배치
+            rs_ratio_final = 100 + z_r * 10.0
+            rs_mom_final = 100 + z_m * 10.0
+            
+            all_r[sector] = rs_ratio_final.tail(tail_len).values
+            all_m[sector] = rs_mom_final.tail(tail_len).values
 
-        # 사분면 범위 산출
-        all_x = np.concatenate(list(all_r.values()))
-        all_y = np.concatenate(list(all_m.values()))
+        # 가로세로 스케일 비율을 70~130으로 완벽히 동일하게 맞춰 왜곡 차단 (개별 종목과 차트 틀 통일)
+        half_width_x = 30.0
+        half_width_y = 30.0
         
-        # 가로축과 세로축의 최대 편차를 통합 계산하여 완벽한 상하좌우 대칭형(정사각형 비율) 스케일 구현 (100 원점 대칭 유지 및 극단적 아웃라이어 차단)
-        max_dev = max(max(abs(all_x - 100)), max(abs(all_y - 100)))
-        max_dev = np.clip(max_dev, 2.0, 15.0) # 섹터는 변동성이 작으므로 15.0으로 컴팩트하게 제한
-        
-        half_width_x = max_dev * 1.15
-        half_width_y = max_dev * 1.15
-        
-        x_min, x_max = 100 - half_width_x, 100 + half_width_x
-        y_min, y_max = 100 - half_width_y, 100 + half_width_y
+        x_min, x_max = 70.0, 130.0
+        y_min, y_max = 70.0, 130.0
         
         # 사분면 및 상세 텍스트 가이드 설정 적용
         self._setup_quadrants(ax, half_width_x, half_width_y)
@@ -203,8 +205,8 @@ class RRGVisualizer:
         # 섹터별 궤적 플롯 (경계면 클리핑 적용)
         for i, sector in enumerate(sectors):
             color = self.sector_colors.get(sector, self.default_color_map(i % 10))
-            clipped_r = np.clip(all_r[sector], x_min + 0.2, x_max - 0.2)
-            clipped_m = np.clip(all_m[sector], y_min + 0.2, y_max - 0.2)
+            clipped_r = np.clip(all_r[sector], 70.5, 129.5)
+            clipped_m = np.clip(all_m[sector], 70.5, 129.5)
             self._plot_tail_with_flow(ax, clipped_r, clipped_m, sector, color, is_sector=True)
             
         ax.set_title(f'US Market Sector Rotation Graph (Relative to {self.benchmark}) - {as_of_date}\nTail: {tail_len} Days', 
@@ -213,6 +215,7 @@ class RRGVisualizer:
         ax.set_ylabel('RS-Momentum (Short-Term Velocity)', fontsize=12, fontweight='bold')
         ax.set_xlim(x_min, x_max)
         ax.set_ylim(y_min, y_max)
+        ax.set_aspect('equal', adjustable='box') # 꼬리의 1:1 회전각 왜곡 방지 및 시각적 비율 강제 1:1 고정
         ax.grid(True, alpha=0.15, linestyle=':')
         
         plt.tight_layout()

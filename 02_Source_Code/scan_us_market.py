@@ -5,13 +5,11 @@ from main_agent import AntigravityMasterV95
 from rrg_visualizer import RRGVisualizer
 
 def main():
-    # Define our comprehensive list of leading US stocks across key sectors
+    # Define our list of Magnificient Big 7 stocks across core sectors
     sector_stock_map = {
-        'XLK': ['NVDA', 'AVGO', 'MSFT', 'AAPL', 'PLTR', 'PANW', 'ANET', 'VRT'],
-        'XLC': ['GOOGL', 'META', 'NFLX'],
-        'XLY': ['AMZN', 'TSLA', 'BROS'],
-        'XLE': ['VLO', 'CEG'],
-        'XLF': ['COIN', 'MSTR']
+        'XLK': ['AAPL', 'MSFT', 'NVDA'],
+        'XLC': ['GOOGL', 'META'],
+        'XLY': ['AMZN', 'TSLA']
     }
 
     print("=" * 80)
